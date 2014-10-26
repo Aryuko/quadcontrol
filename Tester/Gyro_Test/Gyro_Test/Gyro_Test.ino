@@ -168,30 +168,48 @@ void loop()
   // Compass, Gyro, Acceleration. The First value is
   // the temperature.
 
+  //printTemp();
+  //Serial.print("  ");
+  //printCMPS();
+  //Serial.print("  ");
+  printGYRO();
+  Serial.print("  ");
+  printACCEL();
+  Serial.println();
+  delay(100);
+}
+
+void printTemp() {
   double dT = ( (double) MPU9150_readSensor(MPU9150_TEMP_OUT_L,MPU9150_TEMP_OUT_H) + 12412.0) / 340.0;
   Serial.print(dT);
-  Serial.print("  ");
+}
+
+void printCMPS() {
   Serial.print(MPU9150_readSensor(MPU9150_CMPS_XOUT_L,MPU9150_CMPS_XOUT_H));
   Serial.print("  ");
   Serial.print(MPU9150_readSensor(MPU9150_CMPS_YOUT_L,MPU9150_CMPS_YOUT_H));
   Serial.print("  ");
   Serial.print(MPU9150_readSensor(MPU9150_CMPS_ZOUT_L,MPU9150_CMPS_ZOUT_H));
-  Serial.print("  ");
-  Serial.print(MPU9150_readSensor(MPU9150_GYRO_XOUT_L,MPU9150_GYRO_XOUT_H));
-  Serial.print("  ");
-  Serial.print(MPU9150_readSensor(MPU9150_GYRO_YOUT_L,MPU9150_GYRO_YOUT_H));
-  Serial.print("  ");
-  Serial.print(MPU9150_readSensor(MPU9150_GYRO_ZOUT_L,MPU9150_GYRO_ZOUT_H));
-  Serial.print("  ");
-  Serial.print(MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H));
-  Serial.print("  ");
-  Serial.print(MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H));
-  Serial.print("  ");
-  Serial.print(MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L,MPU9150_ACCEL_ZOUT_H));
-  Serial.println();
-  delay(1000);
 }
 
+void printGYRO() {
+  Serial.print(((double) MPU9150_readSensor(MPU9150_GYRO_XOUT_L,MPU9150_GYRO_XOUT_H)) / 131.0);
+  Serial.print(" ");
+  Serial.print(((double) MPU9150_readSensor(MPU9150_GYRO_YOUT_L,MPU9150_GYRO_YOUT_H)) / 131.0);
+  Serial.print(" ");
+  Serial.print(((double) MPU9150_readSensor(MPU9150_GYRO_ZOUT_L,MPU9150_GYRO_ZOUT_H)) / 131.0);
+  Serial.print(" ");
+}
+
+void printACCEL() {
+  Serial.print(((double) MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H)) / 16384.0);
+  Serial.print(" ");
+  Serial.print(((double) MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H)) / 16834.0);
+  Serial.print(" ");
+  Serial.print(((double) MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L,MPU9150_ACCEL_ZOUT_H)) / 16834.0);
+  Serial.print(" ");
+}
+  
 //http://pansenti.wordpress.com/2013/03/26/pansentis-invensense-mpu-9150-software-for-arduino-is-now-on-github/
 //Thank you to pansenti for setup code.
 //I will documented this one later.
