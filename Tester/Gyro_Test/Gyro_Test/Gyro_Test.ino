@@ -155,9 +155,23 @@ void setup()
   Wire.begin();
 
   // Clear the 'sleep' bit to start the sensor.
-  MPU9150_writeSensor(MPU9150_PWR_MGMT_1, 0);
-
+  writeMPU(MPU9150_PWR_MGMT_1, 0);
+  
+  while (!Serial) {}
+  
+  delay(100);
+  
+  Serial.println(readMPU(0x37));
+  writeMPU(0x37, 0x02);
+  Serial.println(readMPU(0x37));
+  
+  Serial.println(readMPU(0x6A));
+  writeMPU(0x6A, 0);
+  Serial.println(readMPU(0x6A));
+  
   MPU9150_setupCompass();
+  
+  Serial.println(readCMPS(0x00));
 }
 
 
@@ -170,44 +184,48 @@ void loop()
 
   //printTemp();
   //Serial.print("  ");
-  //printCMPS();
-  //Serial.print("  ");
-  printGYRO();
-  Serial.print("  ");
-  printACCEL();
+  Serial.print("CMPS: ");
+  printCMPS();
   Serial.println();
-  delay(100);
+  Serial.print("GYRO: ");
+  printGYRO();
+  Serial.println();
+  Serial.print("ACCL: ");
+  printACCEL();
+  Serial.println(); Serial.println();
+  delay(2000);
 }
 
 void printTemp() {
-  double dT = ( (double) MPU9150_readSensor(MPU9150_TEMP_OUT_L,MPU9150_TEMP_OUT_H) + 12412.0) / 340.0;
+  double dT = ( (double) readMPU(MPU9150_TEMP_OUT_L,MPU9150_TEMP_OUT_H) + 12412.0) / 340.0;
   Serial.print(dT);
 }
 
 void printCMPS() {
-  Serial.print(MPU9150_readSensor(MPU9150_CMPS_XOUT_L,MPU9150_CMPS_XOUT_H));
-  Serial.print("  ");
-  Serial.print(MPU9150_readSensor(MPU9150_CMPS_YOUT_L,MPU9150_CMPS_YOUT_H));
-  Serial.print("  ");
-  Serial.print(MPU9150_readSensor(MPU9150_CMPS_ZOUT_L,MPU9150_CMPS_ZOUT_H));
+  
+  Serial.print(readCMPS(0x03, 0x04));
+  Serial.print(" | ");
+  
+  Serial.print(readCMPS(0x03, 0x04));
+  Serial.print(" | ");
+  
+  Serial.print(readCMPS(0x03, 0x04));
 }
 
 void printGYRO() {
-  Serial.print(((double) MPU9150_readSensor(MPU9150_GYRO_XOUT_L,MPU9150_GYRO_XOUT_H)) / 131.0);
-  Serial.print(" ");
-  Serial.print(((double) MPU9150_readSensor(MPU9150_GYRO_YOUT_L,MPU9150_GYRO_YOUT_H)) / 131.0);
-  Serial.print(" ");
-  Serial.print(((double) MPU9150_readSensor(MPU9150_GYRO_ZOUT_L,MPU9150_GYRO_ZOUT_H)) / 131.0);
-  Serial.print(" ");
+  Serial.print(((double) readMPU(MPU9150_GYRO_XOUT_L,MPU9150_GYRO_XOUT_H)) / 131.0);
+  Serial.print(" | ");
+  Serial.print(((double) readMPU(MPU9150_GYRO_YOUT_L,MPU9150_GYRO_YOUT_H)) / 131.0);
+  Serial.print(" | ");
+  Serial.print(((double) readMPU(MPU9150_GYRO_ZOUT_L,MPU9150_GYRO_ZOUT_H)) / 131.0);
 }
 
 void printACCEL() {
-  Serial.print(((double) MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H)) / 16384.0);
-  Serial.print(" ");
-  Serial.print(((double) MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H)) / 16834.0);
-  Serial.print(" ");
-  Serial.print(((double) MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L,MPU9150_ACCEL_ZOUT_H)) / 16834.0);
-  Serial.print(" ");
+  Serial.print(((double) readMPU(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H)) / 16384.0);
+  Serial.print(" | ");
+  Serial.print(((double) readMPU(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H)) / 16834.0);
+  Serial.print(" | ");
+  Serial.print(((double) readMPU(MPU9150_ACCEL_ZOUT_L,MPU9150_ACCEL_ZOUT_H)) / 16834.0);
 }
   
 //http://pansenti.wordpress.com/2013/03/26/pansentis-invensense-mpu-9150-software-for-arduino-is-now-on-github/
@@ -216,36 +234,66 @@ void printACCEL() {
 void MPU9150_setupCompass(){
   MPU9150_I2C_ADDRESS = 0x0C;      //change Adress to Compass
 
-  MPU9150_writeSensor(0x0A, 0x00); //PowerDownMode
-  MPU9150_writeSensor(0x0A, 0x0F); //SelfTest
-  MPU9150_writeSensor(0x0A, 0x00); //PowerDownMode
+  writeMPU(0x0A, 0x00); //PowerDownMode
+  writeMPU(0x0A, 0x0F); //SelfTest
+  writeMPU(0x0A, 0x00); //PowerDownMode
 
   MPU9150_I2C_ADDRESS = 0x69;      //change Adress to MPU
 
-  MPU9150_writeSensor(0x24, 0x40); //Wait for Data at Slave0
-  MPU9150_writeSensor(0x25, 0x8C); //Set i2c address at slave0 at 0x0C
-  MPU9150_writeSensor(0x26, 0x02); //Set where reading at slave 0 starts
-  MPU9150_writeSensor(0x27, 0x88); //set offset at start reading and enable
-  MPU9150_writeSensor(0x28, 0x0C); //set i2c address at slv1 at 0x0C
-  MPU9150_writeSensor(0x29, 0x0A); //Set where reading at slave 1 starts
-  MPU9150_writeSensor(0x2A, 0x81); //Enable at set length to 1
-  MPU9150_writeSensor(0x64, 0x01); //overvride register
-  MPU9150_writeSensor(0x67, 0x03); //set delay rate
-  MPU9150_writeSensor(0x01, 0x80);
+  /*writeMPU(0x24, 0x40); //Wait for Data at Slave0
+  writeMPU(0x25, 0x8C); //Set i2c address at slave0 at 0x0C
+  writeMPU(0x26, 0x02); //Set where reading at slave 0 starts
+  writeMPU(0x27, 0x88); //set offset at start reading and enable
+  writeMPU(0x28, 0x0C); //set i2c address at slv1 at 0x0C
+  writeMPU(0x29, 0x0A); //Set where reading at slave 1 starts
+  writeMPU(0x2A, 0x81); //Enable at set length to 1
+  writeMPU(0x64, 0x01); //overvride register
+  writeMPU(0x67, 0x03); //set delay rate
+  writeMPU(0x01, 0x80);
 
-  MPU9150_writeSensor(0x34, 0x04); //set i2c slv4 delay
-  MPU9150_writeSensor(0x64, 0x00); //override register
-  MPU9150_writeSensor(0x6A, 0x00); //clear usr setting
-  MPU9150_writeSensor(0x64, 0x01); //override register
-  MPU9150_writeSensor(0x6A, 0x20); //enable master i2c mode
-  MPU9150_writeSensor(0x34, 0x13); //disable slv4
+  writeMPU(0x34, 0x04); //set i2c slv4 delay
+  writeMPU(0x64, 0x00); //override register
+  writeMPU(0x6A, 0x00); //clear usr setting
+  writeMPU(0x64, 0x01); //override register
+  writeMPU(0x6A, 0x20); //enable master i2c mode
+  writeMPU(0x34, 0x13); //disable slv4 */
 }
 
 ////////////////////////////////////////////////////////////
 ///////// I2C functions to get easier all values ///////////
 ////////////////////////////////////////////////////////////
 
-int MPU9150_readSensor(int addrL, int addrH){
+int readCMPS(int addrL, int addrH) {
+  MPU9150_I2C_ADDRESS = 0x0C;      //change Adress to Compass
+  
+  int response = readMPU(addrL, addrH);
+
+  MPU9150_I2C_ADDRESS = 0x69;      //change Adress to MPU
+  
+  return response;
+}
+
+int readCMPS(int addr) {
+  MPU9150_I2C_ADDRESS = 0x0C;      //change Adress to Compass
+  
+  int response = readMPU(addr);
+
+  MPU9150_I2C_ADDRESS = 0x69;      //change Adress to MPU
+  
+  return response;
+}
+
+int writeCMPS(int addr, int data) {
+  MPU9150_I2C_ADDRESS = 0x0C;      //change Adress to Compass
+  
+  int response = writeMPU(addr, data);
+
+  MPU9150_I2C_ADDRESS = 0x69;      //change Adress to MPU
+  
+  return response;
+}
+
+int readMPU(int addrL, int addrH){
   Wire.beginTransmission(MPU9150_I2C_ADDRESS);
   Wire.write(addrL);
   Wire.endTransmission(false);
@@ -263,7 +311,7 @@ int MPU9150_readSensor(int addrL, int addrH){
   return (int16_t)((H<<8)+L);
 }
 
-int MPU9150_readSensor(int addr){
+int readMPU(int addr){
   Wire.beginTransmission(MPU9150_I2C_ADDRESS);
   Wire.write(addr);
   Wire.endTransmission(false);
@@ -272,7 +320,7 @@ int MPU9150_readSensor(int addr){
   return Wire.read();
 }
 
-int MPU9150_writeSensor(int addr,int data){
+int writeMPU(int addr,int data){
   Wire.beginTransmission(MPU9150_I2C_ADDRESS);
   Wire.write(addr);
   Wire.write(data);
