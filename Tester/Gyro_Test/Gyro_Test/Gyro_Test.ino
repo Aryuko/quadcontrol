@@ -199,17 +199,35 @@ void loop()
 void printTemp() {
   double dT = ( (double) readMPU(MPU9150_TEMP_OUT_L,MPU9150_TEMP_OUT_H) + 12412.0) / 340.0;
   Serial.print(dT);
-}
+}  
 
 void printCMPS() {
   
-  Serial.print(readCMPS(0x03, 0x04));
+  
+  writeCMPS(0x0A, 0x08);
+  readCMPS(0x03, 0x04);
+  unsigned int x = readCMPS(0x03, 0x04);
+  signed int signedX = (x >> 8) | (x << 8);
+  
+  
+  writeCMPS(0x0A, 0x08);
+  readCMPS(0x05, 0x06);
+  unsigned int y = readCMPS(0x05, 0x06);
+  signed int signedY = (y >> 8) | (y << 8);
+  
+  
+  writeCMPS(0x0A, 0x08);
+  readCMPS(0x07, 0x08);
+  unsigned int z = readCMPS(0x07, 0x08);
+  signed int signedZ = (z >> 8) | (z << 8);
+  
+  Serial.print(signedX);
   Serial.print(" | ");
   
-  Serial.print(readCMPS(0x03, 0x04));
+  Serial.print(signedY);
   Serial.print(" | ");
   
-  Serial.print(readCMPS(0x03, 0x04));
+  Serial.print(signedZ);
 }
 
 void printGYRO() {
