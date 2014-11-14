@@ -29,13 +29,13 @@ double sensorACCL_X, sensorACCL_Y, sensorACCL_Z;  //Measured in g
 double sensorANGL_Y, sensorANGL_P, sensorANGL_R;  //Measured in degree
 
 //TargetValues
-int targetACCL_X, targetACCL_Y, targetACCL_Z;  //Measured in g
-int targetGYRO_X, targetGYRO_Y, targetGYRO_Z;  //Measured in rad/s
-int targetANGL_X, targetANGL_Y, targetANGL_Z;  //Measured in rad
+float yprTarget[3];
+float totThrottle;
 
 //Displacment - The acceleration displacment has been smashed in the angle displacment
-int rollDisplacment, pitchDisplacment, yawDisplacment;
-int rollPerSecondDisplacment, pitchPerSecondDisplacment, yawPerSecondDisplacment;
+float yprDisplacment[3];
+
+const int pi = 3.1415926 * 10000000;
 
 void setup() {
   Serial.begin(9600);
@@ -50,7 +50,11 @@ void loop() {
   
   retriveSensorData();
   
+  //printMPU();
+  
   calcDisplacment();
+  
+  printDisplacment();
   
   calcStrategy();
   
@@ -148,13 +152,90 @@ void retriveSensorData() {
   }
 }
 
-void calcDisplacment() {
+void printMPU() {
+  Serial.print("ypr");
+  Serial.print("\t\t");
+  Serial.print(sensorANGL_Y);
+  Serial.print("\t");
+  Serial.print(sensorANGL_P);
+  Serial.print("\t");
+  Serial.print(sensorANGL_R);
+  Serial.println();
 }
+
+void calcDisplacment() {
+  int deltaV = (yprTarget[0] - sensorANGL_Y)*10000000;
+  float v1 = (deltaV % pi)/10000000;
+  float v2 = 2*pi - v1;
+  float v;
+  
+  if(v1 < v2) {
+    v = v2;
+  }
+  else {
+    v = v1;
+  }
+  
+  yprDisplacment[0] = v;
+
+  yprDisplacment[1] = yprTarget[1] - sensorANGL_P;
+  yprDisplacment[2] = yprTarget[2] - sensorANGL_R;
+}
+
+void printDisplacment() {
+  Serial.print("displacment");
+  for(int i = 0; i < 3; i++) {
+    Serial.print("\t");
+    Serial.print(ypr[i]);
+  }
+  Serial.println();
+}
+
+//PID
+float P_VALUE[] = {1, 1, 1};
+float I_VALUE[] = {1, 1, 1};
+float D_VALUE[] = {1, 1, 1};
+
+float lastError[3];
+float reset[3];
 
 void calcStrategy() {
+  float P[3];
+  for(int i = 0; i < 3; i++) {
+    P[i] = P_VALUE[i]-yprDisplacment[0];
+  }
+  
+  float I[3];
+  for(int i = 0; i < 3; i++) {
+    I[i] = I_VALUE[i]-yprDisplacment[1];
+  }
+  
+  float D[3];
+  for(int i = 0; i < 3; i++) {
+    D[i] = D_VALUE[i]-yprDisplacment[2];
+  }
+  
+  float adjustment[3];
+  for(int i = 0; i < 3; i++) {
+    adjustment[i] = P[i] + I[i] + D[i];
+  }
+  
+  float sharedThrottle = tot * 4;
+  float AC = sharedThrottle/2.0;
+  
+  float BD = AC - adjustmen[0];
+  AC = AC + adjustment[0];
+  
+  float A = AC / 2.0;
+  float C = A - adjustment[1]
+  A = A + adjustment[1];
+  
+  float B = BD / 2.0;
+  float D = BD - adjustment[2];
+  B = B + adjustment[2];
 }
 
-void jesperKrasharQuad{
+void jesperKrasharQuad() {
   
 }
 
