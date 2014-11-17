@@ -199,6 +199,8 @@ float D_VALUE[] = {1, 1, 1};
 float lastError[3];
 float reset[3];
 
+float A, B, C, D;  //Thrust for motors
+
 void calcStrategy() {
   //PID magic
   //P values for all axes
@@ -234,12 +236,12 @@ void calcStrategy() {
   AC = AC + adjustment[0];
   
   //Split evenly in motorpairs and then adjust
-  float A = AC / 2.0;
-  float C = A - adjustment[1]
+  A = AC / 2.0;
+  C = A - adjustment[1]
   A = A + adjustment[1];
   
-  float B = BD / 2.0;
-  float D = BD - adjustment[2];
+  B = BD / 2.0;
+  D = BD - adjustment[2];
   B = B + adjustment[2];
 }
 
