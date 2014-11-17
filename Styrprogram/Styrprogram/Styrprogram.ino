@@ -30,7 +30,7 @@ double sensorANGL_Y, sensorANGL_P, sensorANGL_R;  //Measured in degree
 
 //TargetValues
 float yprTarget[3];
-float totThrottle;
+float totThrottle = 60;
 
 //Displacment - The acceleration displacment has been smashed in the angle displacment
 float yprDisplacment[3];
@@ -44,21 +44,29 @@ void setup() {
   
   initMPU();
 }
+int counter = 0;
 
 void loop() {
   retriveInput();
   
   retriveSensorData();
   
-  //printMPU();
-  
   calcDisplacment();
-  
-  printDisplacment();
   
   calcStrategy();
   
   executeStrategy();
+  
+  int cutoff = 100;
+  if(counter++ > cutoff) {
+    counter -= cutoff;
+    
+    //printMPU();
+  
+    printDisplacment();
+  
+    printStrategy();
+  } 
 }
 
 void initMPU() {
@@ -192,33 +200,36 @@ void printDisplacment() {
 }
 
 //PID
+//YawPitchRoll - array order
 float P_VALUE[] = {1, 1, 1};
-float I_VALUE[] = {1, 1, 1};
-float D_VALUE[] = {1, 1, 1};
+float I_VALUE[] = {0, 0, 0};
+float D_VALUE[] = {0, 0, 0};
 
-float lastError[3];
-float reset[3];
+float lastError[] = {0, 0, 0};
+float reset[] = {0, 0, 0};
 
-float A, B, C, D;  //Thrust for motors
+float Amotor, Bmotor, Cmotor, Dmotor;  //Thrust for motors
 
 void calcStrategy() {
   //PID magic
   //P values for all axes
   float P[3];
   for(int i = 0; i < 3; i++) {
-    P[i] = P_VALUE[i]-yprDisplacment[0];
+    P[i] = P_VALUE[i] * yprDisplacment[i];
   }
   
   //I vlaues for all axes
   float I[3];
   for(int i = 0; i < 3; i++) {
-    I[i] = I_VALUE[i]-yprDisplacment[1];
+    reset[i] = reset[i] + yprDisplacment[i];
+    I[i] = I_VALUE[i] * reset[i];
   }
   
   //D values for all axes
   float D[3];
   for(int i = 0; i < 3; i++) {
-    D[i] = D_VALUE[i]-yprDisplacment[2];
+    D[i] = D_VALUE[i] * (lastError[i] - yprDisplacment[i]);
+    lastError[i] = yprDisplacment[i];
   }
   
   //Combined values for all axes
@@ -228,21 +239,30 @@ void calcStrategy() {
   }
   
   //Distribute thrust according to adjustments
-  float sharedThrottle = tot * 4;
+  float sharedThrottle = totThrottle * 4;
   
   //Split evenly between motorpairs and then adjust
   float AC = sharedThrottle/2.0;
-  float BD = AC - adjustmen[0];
+  float BD = AC - adjustment[0];
   AC = AC + adjustment[0];
   
   //Split evenly in motorpairs and then adjust
-  A = AC / 2.0;
-  C = A - adjustment[1]
-  A = A + adjustment[1];
+  Amotor = AC / 2.0;
+  Cmotor = Amotor - adjustment[1];
+  Amotor = Amotor + adjustment[1];
   
-  B = BD / 2.0;
-  D = BD - adjustment[2];
-  B = B + adjustment[2];
+  Bmotor = BD / 2.0;
+  Dmotor = Bmotor - adjustment[2];
+  Bmotor = Bmotor + adjustment[2];
+}
+
+void printStrategy() {
+  Serial.println("----------");
+  Serial.print("\t");      Serial.print(Bmotor);    Serial.println();
+  Serial.print(Amotor);    Serial.print("\t\t");    Serial.println(Cmotor);
+  Serial.print("\t");      Serial.print(Dmotor);    Serial.println();
+  Serial.println("----------");
+  Serial.println();
 }
 
 void jesperKrasharQuad() {
