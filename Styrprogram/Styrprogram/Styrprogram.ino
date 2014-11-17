@@ -37,6 +37,8 @@ float yprDisplacment[3];
 
 const int pi = 3.1415926 * 10000000;
 
+float MOTOR_MAX = 90, MOTOR_MIN = 30;
+
 void setup() {
   Serial.begin(9600);
   
@@ -255,6 +257,62 @@ void calcStrategy() {
   Dmotor = Bmotor - adjustment[2];
   Bmotor = Bmotor + adjustment[2];
 }
+
+/* Alternate solution to thrust distribution
+float distributeThrottle(float throttle, float adj[]) {
+  float sharedThrottle = throttle * 4;
+  
+  //Split evenly between motorpairs and then adjust
+  float AC = sharedThrottle/2.0;
+  float BD = AC - adj[0];
+  AC = AC + adj[0];
+  
+  //Split evenly in motorpairs and then adjust
+  Amotor = AC / 2.0;
+  Cmotor = Amotor - adj[1];
+  Amotor = Amotor + adj[1];
+  
+  Bmotor = BD / 2.0;
+  Dmotor = Bmotor - adj[2];
+  Bmotor = Bmotor + adj[2];
+  
+  //Shift middlepoint in pitch roll
+  float Aoffset = calcOffset(Amotor);
+  float Coffset = calcOffset(Cmotor);
+  if(Aoffset * Coffset > 0) {
+    float amount = abs(Aoffset) < abs(Coffset) ? Aoffset : Coffset;
+    Amotor -= amount;
+    Cmotor -= amount;
+  }
+  float Boffset = calcOffset(Bmotor);
+  float Doffset = calcOffset(Dmotor);
+  if(Boffset * Doffset > 0) {
+    float amount = abs(Boffset) < abs(Doffset) ? Boffset : Doffset;
+    Bmotor -= amount;
+    Dmotor -= amount;
+  }
+  
+  //Shift middlepoint yaw
+  Aoffset = calcOffset(Amotor);
+  Coffset = calcOffset(Cmotor);
+  Boffset = calcOffset(Bmotor);
+  Doffset = calcOffset(Dmotor);
+  
+  
+  
+}
+
+float calcOffset(float motor) {
+  if(motor < MOTOR_MIN) {
+    return motor - MOTOR_MIN;
+  }
+  else if(motor > MOTOR_MAX) {
+    return MOTOR_MAX - motor;
+  }
+  else {
+    return 0;
+  }
+}*/
 
 void printStrategy() {
   Serial.println("----------");
