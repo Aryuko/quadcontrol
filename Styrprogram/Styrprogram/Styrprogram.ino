@@ -200,32 +200,40 @@ float lastError[3];
 float reset[3];
 
 void calcStrategy() {
+  //PID magic
+  //P values for all axes
   float P[3];
   for(int i = 0; i < 3; i++) {
     P[i] = P_VALUE[i]-yprDisplacment[0];
   }
   
+  //I vlaues for all axes
   float I[3];
   for(int i = 0; i < 3; i++) {
     I[i] = I_VALUE[i]-yprDisplacment[1];
   }
   
+  //D values for all axes
   float D[3];
   for(int i = 0; i < 3; i++) {
     D[i] = D_VALUE[i]-yprDisplacment[2];
   }
   
+  //Combined values for all axes
   float adjustment[3];
   for(int i = 0; i < 3; i++) {
     adjustment[i] = P[i] + I[i] + D[i];
   }
   
+  //Distribute thrust according to adjustments
   float sharedThrottle = tot * 4;
-  float AC = sharedThrottle/2.0;
   
+  //Split evenly between motorpairs and then adjust
+  float AC = sharedThrottle/2.0;
   float BD = AC - adjustmen[0];
   AC = AC + adjustment[0];
   
+  //Split evenly in motorpairs and then adjust
   float A = AC / 2.0;
   float C = A - adjustment[1]
   A = A + adjustment[1];
