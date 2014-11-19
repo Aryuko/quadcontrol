@@ -1,7 +1,8 @@
-//Imports to read from the MPU
+  //Imports to read from the MPU
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 #include <Wire.h>
+#include <Servo.h>
 
 //Classes for MPU
 MPU6050 mpu(0x69);
@@ -38,13 +39,12 @@ float yprDisplacment[3];
 const int pi = 3.1415926 * 10000000;
 
 float MOTOR_MAX = 90, MOTOR_MIN = 30;
+Servo motorA, motorB, motorC, motorD;
 
 void setup() {
   Serial.begin(9600);
-  
-  while(!Serial){}
-  
   initMPU();
+  setupMotors();
 }
 int counter = 0;
 
@@ -63,7 +63,7 @@ void loop() {
   if(counter++ > cutoff) {
     counter -= cutoff;
     
-    //printMPU();
+    printMPU();
   
     printDisplacment();
   
@@ -328,6 +328,42 @@ void jesperKrasharQuad() {
 }
 
 void executeStrategy() {
+  setSpeed(Amotor, motorA);
+  setSpeed(Bmotor, motorB);
+  setSpeed(Cmotor, motorC);
+  setSpeed(Dmotor, motorD);
+}
+
+void arm() {
+  //arm speed controller, modify as necessary for your ESC
+  
+  Serial.println("Arming");
+  //setSpeed(0, motorA); setSpeed(0, motorB); setSpeed(0, motorC); setSpeed(0, motorD);
+  //delay(2000);
+  
+  setSpeed(90, motorA); setSpeed(90, motorB); setSpeed(90, motorC); setSpeed(90, motorD);
+  delay(2500);
+  
+  Serial.println("Armed");
+  setSpeed(0, motorA); setSpeed(0, motorB); setSpeed(0, motorC); setSpeed(0, motorD);
+  delay(2000);
+  
+}
+
+void setSpeed(int speed, Servo motor) {
+  // speed is from 0 to 100 where 0 is off and 100 is max speed
+  // the following maps speed values of 0-100 to angles from 0-180
+  
+  int angle = map(speed, 0, 100, 0, 180);
+  motor.write(angle);
+  
+}
+
+void setupMotors() {
+  motorA.attach(10); motorB.attach(6); motorC.attach(5); motorD.attach(11);
+  setSpeed(MOTOR_MIN, motorA); setSpeed(MOTOR_MIN, motorB); setSpeed(MOTOR_MIN, motorC); setSpeed(MOTOR_MIN, motorD);
+  delay(2000);
+  //arm();
 }
 
 void dmpDataReady() {
