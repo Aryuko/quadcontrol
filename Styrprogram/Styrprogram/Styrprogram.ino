@@ -31,7 +31,7 @@ double sensorANGL_Y, sensorANGL_P, sensorANGL_R;  //Measured in degree
 
 //TargetValues
 float yprTarget[3];
-float totThrottle = 60;
+float totThrottle = 50;
 
 //Displacment - The acceleration displacment has been smashed in the angle displacment
 float yprDisplacment[3];
@@ -40,6 +40,18 @@ const int pi = 3.1415926 * 10000000;
 
 float MOTOR_MAX = 90, MOTOR_MIN = 30;
 Servo motorA, motorB, motorC, motorD;
+bool armed = false;
+
+//PID
+//YawPitchRoll - array order
+float P_VALUE[] = {1, 1, 0.005};
+float I_VALUE[] = {0, 0, 0};
+float D_VALUE[] = {0, 0, 0};
+
+float lastError[] = {0, 0, 0};
+float reset[] = {0, 0, 0};
+
+float Amotor, Bmotor, Cmotor, Dmotor;  //Thrust for motors
 
 void setup() {
   Serial.begin(9600);
@@ -64,6 +76,8 @@ void loop() {
     counter -= cutoff;
     
     printMPU();
+    
+    printPID();
   
     printDisplacment();
   
@@ -109,6 +123,25 @@ void initMPU() {
 }
 
 void retriveInput() {
+  if(Serial.available() > 0) {
+    char sign = Serial.read();
+    float newSpeed = Serial.parseFloat();
+    if(sign == 'p') {
+      P_VALUE[2] = newSpeed;
+    }
+    else if(sign == 'i') {
+      I_VALUE[2] = newSpeed;
+    }
+    else if(sign == 'd') {
+      D_VALUE[2] = newSpeed;
+    }
+    else if(sign == 'a') {
+      armed = !armed;
+    }
+    else if(sign == 'r') {
+      reset[2] = 0.0;
+    }
+  }
 }
 
 void retriveSensorData() {
@@ -200,17 +233,6 @@ void printDisplacment() {
   }
   Serial.println();
 }
-
-//PID
-//YawPitchRoll - array order
-float P_VALUE[] = {1, 1, 1};
-float I_VALUE[] = {0, 0, 0};
-float D_VALUE[] = {0, 0, 0};
-
-float lastError[] = {0, 0, 0};
-float reset[] = {0, 0, 0};
-
-float Amotor, Bmotor, Cmotor, Dmotor;  //Thrust for motors
 
 void calcStrategy() {
   //PID magic
@@ -354,9 +376,28 @@ void setSpeed(int speed, Servo motor) {
   // speed is from 0 to 100 where 0 is off and 100 is max speed
   // the following maps speed values of 0-100 to angles from 0-180
   
+  if(speed < MOTOR_MIN) {
+    speed = MOTOR_MIN;
+  }
+  else if(speed > MOTOR_MAX) {
+    speed = MOTOR_MAX;
+  }
+  
+  if(!armed) {
+    speed = 25;
+  }
+  
   int angle = map(speed, 0, 100, 0, 180);
   motor.write(angle);
   
+}
+
+void printPID() {
+  Serial.print("PID\t");
+  Serial.print(P_VALUE[2]); Serial.print("\t");
+  Serial.print(I_VALUE[2]); Serial.print("\t");
+  Serial.println(D_VALUE[2]);
+  Serial.print("reset - "); Serial.println(reset[2]);
 }
 
 void setupMotors() {
