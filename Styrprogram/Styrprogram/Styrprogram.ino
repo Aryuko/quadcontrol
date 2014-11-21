@@ -31,7 +31,7 @@ double sensorANGL_Y, sensorANGL_P, sensorANGL_R;  //Measured in degree
 
 //TargetValues
 float yprTarget[3];
-float totThrottle = 50;
+float totThrottle = 30;
 
 //Displacment - The acceleration displacment has been smashed in the angle displacment
 float yprDisplacment[3];
@@ -44,17 +44,23 @@ bool armed = false;
 
 //PID
 //YawPitchRoll - array order
-float P_VALUE[] = {1, 1, 0.005};
+float P_VALUE[] = {0, 0, 0.04};
 float I_VALUE[] = {0, 0, 0};
-float D_VALUE[] = {0, 0, 0};
+float D_VALUE[] = {0, 0, -2};
 
 float lastError[] = {0, 0, 0};
-float reset[] = {0, 0, 0};
-
 float Amotor, Bmotor, Cmotor, Dmotor;  //Thrust for motors
+
+int numberOfPastError = 30;
+float pastErrors[3][30] = { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
+int pastErrorIndex[3] = {0, 0, 0};
+float reset[3];
 
 void setup() {
   Serial.begin(9600);
+  while(!Serial) {}
   initMPU();
   setupMotors();
 }
@@ -80,9 +86,17 @@ void loop() {
     printPID();
   
     printDisplacment();
+    
+    printADJ();
+    
+    printAVG();
+    
+    printPastErrors();
+    
+    Serial.print("Trhottle"); Serial.println(totThrottle);
   
     printStrategy();
-  } 
+  }
 }
 
 void initMPU() {
@@ -127,19 +141,22 @@ void retriveInput() {
     char sign = Serial.read();
     float newSpeed = Serial.parseFloat();
     if(sign == 'p') {
-      P_VALUE[2] = newSpeed;
+      P_VALUE[1] = newSpeed;
     }
     else if(sign == 'i') {
-      I_VALUE[2] = newSpeed;
+      I_VALUE[1] = newSpeed;
     }
     else if(sign == 'd') {
-      D_VALUE[2] = newSpeed;
+      D_VALUE[1] = newSpeed;
     }
     else if(sign == 'a') {
       armed = !armed;
     }
+    else if(sign == 's') {
+      totThrottle = newSpeed;
+    }
     else if(sign == 'r') {
-      reset[2] = 0.0;
+      reset[1] = 0.0;
     }
   }
 }
@@ -223,41 +240,71 @@ void calcDisplacment() {
 
   yprDisplacment[1] = yprTarget[1] - sensorANGL_P;
   yprDisplacment[2] = yprTarget[2] - sensorANGL_R;
+  
+  for(int i = 0; i < 3; i++) {
+    if(++pastErrorIndex[i] >= 10) {
+      pastErrorIndex[i] = 0;
+    }
+    
+    pastErrors[i][pastErrorIndex[i]] = yprDisplacment[i];
+  }
+}
+
+void printPastErrors() {
+  for(int i = 0; i < 3; i++) {
+    Serial.print(i); Serial.print(" avg nums");
+    for(int j = 0; j < numberOfPastError; j++) {
+      Serial.print("\t");
+      Serial.print(pastErrors[i][j]);
+    }
+    Serial.println();
+  }
 }
 
 void printDisplacment() {
   Serial.print("displacment");
   for(int i = 0; i < 3; i++) {
     Serial.print("\t");
-    Serial.print(ypr[i]);
+    Serial.print(yprDisplacment[i]);
   }
   Serial.println();
 }
 
+
+float adjustment[3];
+float avgPastErrors[3];
 void calcStrategy() {
   //PID magic
   //P values for all axes
+  
+  for(int i = 0; i < 3; i++) {
+    float sum = 0;
+    for(int j = 0; j < numberOfPastError; j++) {
+      sum += pastErrors[i][j];
+    }
+    avgPastErrors[i] = sum / numberOfPastError;
+  }
+  
   float P[3];
   for(int i = 0; i < 3; i++) {
-    P[i] = P_VALUE[i] * yprDisplacment[i];
+    P[i] = P_VALUE[i] * avgPastErrors[i];
   }
   
   //I vlaues for all axes
   float I[3];
   for(int i = 0; i < 3; i++) {
-    reset[i] = reset[i] + yprDisplacment[i];
+    reset[i] = reset[i] + avgPastErrors[i];
     I[i] = I_VALUE[i] * reset[i];
   }
   
   //D values for all axes
   float D[3];
   for(int i = 0; i < 3; i++) {
-    D[i] = D_VALUE[i] * (lastError[i] - yprDisplacment[i]);
-    lastError[i] = yprDisplacment[i];
+    D[i] = D_VALUE[i] * (lastError[i] - avgPastErrors[i]);
+    lastError[i] = avgPastErrors[i];
   }
   
   //Combined values for all axes
-  float adjustment[3];
   for(int i = 0; i < 3; i++) {
     adjustment[i] = P[i] + I[i] + D[i];
   }
@@ -278,6 +325,24 @@ void calcStrategy() {
   Bmotor = BD / 2.0;
   Dmotor = Bmotor - adjustment[2];
   Bmotor = Bmotor + adjustment[2];
+}
+
+void printAVG() {
+  Serial.print("avg");
+  for(int i = 0; i < 3; i++) {
+    Serial.print("\t");
+    Serial.print(avgPastErrors[i]);
+  }
+  Serial.println();
+}
+
+void printADJ() {
+  Serial.print("adj");
+  for(int i = 0; i < 3; i++) {
+    Serial.print("\t");
+    Serial.print(adjustment[i]);
+  }
+  Serial.println();
 }
 
 /* Alternate solution to thrust distribution
@@ -394,9 +459,9 @@ void setSpeed(int speed, Servo motor) {
 
 void printPID() {
   Serial.print("PID\t");
-  Serial.print(P_VALUE[2]); Serial.print("\t");
-  Serial.print(I_VALUE[2]); Serial.print("\t");
-  Serial.println(D_VALUE[2]);
+  Serial.print(P_VALUE[1] * 1000000); Serial.print("\t");
+  Serial.print(I_VALUE[1] * 1000000); Serial.print("\t");
+  Serial.println(D_VALUE[1] * 1000000);
   Serial.print("reset - "); Serial.println(reset[2]);
 }
 
