@@ -44,9 +44,9 @@ bool armed = false;
 
 //PID
 //YawPitchRoll - array order
-float P_VALUE[] = {0, 0, 0.04};
-float I_VALUE[] = {0, 0, 0};
-float D_VALUE[] = {0, 0, -2};
+float P_VALUE[] = {0, -0.02, 0.02};
+float I_VALUE[] = {0, -0.00003, 0.00003};
+float D_VALUE[] = {0, 2, -2};
 
 float lastError[] = {0, 0, 0};
 float Amotor, Bmotor, Cmotor, Dmotor;  //Thrust for motors
@@ -58,15 +58,17 @@ float pastErrors[3][30] = { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 int pastErrorIndex[3] = {0, 0, 0};
 float reset[3];
 
+int TARGET_AXIS = 1;
+
 void setup() {
   Serial.begin(9600);
-  while(!Serial) {}
-  initMPU();
   setupMotors();
+  initMPU();
 }
 int counter = 0;
 
 void loop() {
+  
   retriveInput();
   
   retriveSensorData();
@@ -141,13 +143,13 @@ void retriveInput() {
     char sign = Serial.read();
     float newSpeed = Serial.parseFloat();
     if(sign == 'p') {
-      P_VALUE[1] = newSpeed;
+      P_VALUE[TARGET_AXIS] = newSpeed;
     }
     else if(sign == 'i') {
-      I_VALUE[1] = newSpeed;
+      I_VALUE[TARGET_AXIS] = newSpeed;
     }
     else if(sign == 'd') {
-      D_VALUE[1] = newSpeed;
+      D_VALUE[TARGET_AXIS] = newSpeed;
     }
     else if(sign == 'a') {
       armed = !armed;
@@ -156,7 +158,13 @@ void retriveInput() {
       totThrottle = newSpeed;
     }
     else if(sign == 'r') {
-      reset[1] = 0.0;
+      reset[TARGET_AXIS] = 0.0;
+    }
+    else if(sign == 'n') {
+      numberOfPastError = newSpeed;
+    }
+    else if(sign == 't') {
+      yprTarget[TARGET_AXIS] = newSpeed;
     }
   }
 }
@@ -242,7 +250,7 @@ void calcDisplacment() {
   yprDisplacment[2] = yprTarget[2] - sensorANGL_R;
   
   for(int i = 0; i < 3; i++) {
-    if(++pastErrorIndex[i] >= 10) {
+    if(++pastErrorIndex[i] >= numberOfPastError) {
       pastErrorIndex[i] = 0;
     }
     
@@ -457,19 +465,31 @@ void setSpeed(int speed, Servo motor) {
   
 }
 
+void setThrottleRange() {
+  setSpeedAllMotors(MOTOR_MAX);
+  delay(2500);
+  setSpeedAllMotors(MOTOR_MIN);
+}
+
+void setSpeedAllMotors(float newSpeed) {
+  setSpeed(newSpeed, motorA);
+  setSpeed(newSpeed, motorB);
+  setSpeed(newSpeed, motorC);
+  setSpeed(newSpeed, motorD);
+}
+
 void printPID() {
   Serial.print("PID\t");
-  Serial.print(P_VALUE[1] * 1000000); Serial.print("\t");
-  Serial.print(I_VALUE[1] * 1000000); Serial.print("\t");
-  Serial.println(D_VALUE[1] * 1000000);
-  Serial.print("reset - "); Serial.println(reset[2]);
+  Serial.print(P_VALUE[TARGET_AXIS] * 1000000000); Serial.print("\t");
+  Serial.print(I_VALUE[TARGET_AXIS] * 1000000000); Serial.print("\t");
+  Serial.println(D_VALUE[TARGET_AXIS] * 1000000000);
+  Serial.print("reset - "); Serial.println(reset[TARGET_AXIS]);
 }
 
 void setupMotors() {
-  motorA.attach(10); motorB.attach(6); motorC.attach(5); motorD.attach(11);
+  motorA.attach(5); motorB.attach(6); motorC.attach(10); motorD.attach(11);
   setSpeed(MOTOR_MIN, motorA); setSpeed(MOTOR_MIN, motorB); setSpeed(MOTOR_MIN, motorC); setSpeed(MOTOR_MIN, motorD);
-  delay(2000);
-  //arm();
+  setThrottleRange();
 }
 
 void dmpDataReady() {
