@@ -44,9 +44,9 @@ bool armed = false;
 
 //PID
 //YawPitchRoll - array order
-float P_VALUE[] = {0, -0.02, 0.02};
-float I_VALUE[] = {0, -0.00003, 0.00003};
-float D_VALUE[] = {0, 2, -2};
+float P_VALUE[] = {0, -0.06, 0.06};
+float I_VALUE[] = {0, -0.00025, 0.00025};
+float D_VALUE[] = {0, 5.5, -5.5};
 
 float lastError[] = {0, 0, 0};
 float Amotor, Bmotor, Cmotor, Dmotor;  //Thrust for motors
